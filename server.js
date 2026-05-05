@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 const app = express();
 app.use(express.json());
 
-// 環境変数から取得（Renderの管理画面で設定してください）
+// 環境変数から取得（Renderの管理画面で設定したもの）
 const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -20,7 +20,7 @@ app.post("/webhook", async (req, res) => {
     if (event.type === "message" && event.message.text) {
       const userMessage = event.message.text;
       
-      // 1. メッセージを解析（GASのhandleMessage相当）
+      // 1. メッセージを解析
       const match = userMessage.match(/^(\d{2})([ァ-ヶーぁ-ん\u4e00-\u9fa5a-zA-Z]{2,8})(?:\s+(.+))?$/u);
       
       let replyText = "";
@@ -72,12 +72,22 @@ async function generateUranai(num2, seiza) {
       })
     });
     const data = await response.json();
+    
+    // エラーレスポンスのチェック
+    if (data.error) {
+      console.error("Gemini Error:", data.error);
+      return "⚠️ 占い生成に失敗しました（APIキーまたは制限の確認が必要です）";
+    }
+
     return data.candidates[0].content.parts[0].text;
   } catch (e) {
+    console.error("Fetch Error:", e);
     return "⚠️ 占い生成に失敗しました。";
   }
 }
 
 app.get("/", (req, res) => res.send("Bot is running"));
-const PORT = process.env.PORT || 3000;
+
+// Renderのデフォルトポート10000番を優先的に使用するように設定[cite: 1, 2]
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
