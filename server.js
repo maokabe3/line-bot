@@ -3,7 +3,7 @@ async function generateUranai(num2, seiza) {
   
   // 1.5がNotFoundなので、最新の2.0-flashを指定します
   // ※もしこれでもダメなら gemini-2.5-flash に書き換えてみてください
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
   
   const prompt = `あなたは競馬×相性占いの専門家です。今日の中央競馬のメインレースを想定して占い結果を作成してください。
 【ユーザー情報】携帯末尾2桁: ${num2}, 星座: ${seiza}
