@@ -1,13 +1,13 @@
-// Gemini APIを呼び出す関数
 async function generateUranai(num2, seiza) {
-  // 環境変数から読み込み（Renderの設定画面で登録した名前と一致させてください）
   const API_KEY = process.env.GEMINI_API_KEY;
   
-  // ★ ここで gemini-1.5-flash を明示的に指定しています
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+  // 現在の最新指定「gemini-2.5-flash」を試行
+  // もしこれで「Not Found」が出る場合は「gemini-2.0-flash」に書き換えてください
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
   
-  const prompt = `あなたは競馬×相性占いの専門家です。今日の中央競馬のメインレースを想定して占い結果を作成してください。
+  const prompt = `あなたは競馬×相性占いの専門家です。
 【ユーザー情報】携帯末尾2桁: ${num2}, 星座: ${seiza}
+【占い内容】今日の中央競馬のメインレースにおけるラッキーホースを1頭選んでください。
 【出力フォーマット】
 ⭐[馬名] 🐎
 🍀 ラッキーアイテム：[アイテム]
@@ -26,20 +26,19 @@ async function generateUranai(num2, seiza) {
     
     const data = await response.json();
 
-    // ログに詳細を出力（RenderのLogsで確認できるようになります）
+    // エラーが出た場合、詳細をRenderのログに出力
     if (data.error) {
-      console.error("Gemini APIからのエラー:", data.error.message);
-      return `⚠️ 占い生成に失敗（${data.error.message}）`;
+      console.error("Gemini API Error Detail:", JSON.stringify(data.error));
+      return `⚠️ APIエラー（${data.error.status}）: ${data.error.message}`;
     }
 
-    if (!data.candidates || !data.candidates[0].content) {
-      console.error("Geminiからの応答が空です:", data);
-      return "⚠️ 占い結果が空でした。";
+    if (data.candidates && data.candidates[0].content) {
+      return data.candidates[0].content.parts[0].text;
+    } else {
+      return "⚠️ 占い結果の生成に失敗しました。";
     }
-
-    return data.candidates[0].content.parts[0].text;
   } catch (e) {
-    console.error("通信エラー:", e.message);
-    return "⚠️ サーバー通信エラーで占えませんでした。";
+    console.error("Fetch Error:", e.message);
+    return "⚠️ サーバー通信エラーが発生しました。";
   }
 }
