@@ -25,7 +25,7 @@ app.post("/webhook", async (req, res) => {
       
       let replyText = "";
       if (!match) {
-        replyText = '🐎 送り方の例:\n「89ヤギ」→ 本日のメインレース占い\n「89ヤギ 有馬記念」→ 指定レース占い\n\n数字2桁＋星座で送ってね！';
+        replyText = '🐎 送り方の例:\n「89ヤギ」→ 本日のメインレース占い\n「89ヤギ 有馬記念」→ 指定レース占い\n\n携帯末尾数字2桁＋星座で送ってね！';
       } else {
         const num2 = match[1];
         const seiza = match[2];
