@@ -62,26 +62,26 @@ app.post("/webhook", async (req, res) => {
     console.log("占い結果:", result);
 
     // 🔥 LINE返信
-    const lineRes = await fetch("https://api.line.me/v2/bot/message/reply", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
-      },
-      body: JSON.stringify({
-        replyToken: replyToken,
-        messages: [
-          {
-            type: "text",
-            text: result
-          }
-        ]
-      })
-    });
+const lineRes = await fetch("https://api.line.me/v2/bot/message/reply", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+  },
+  body: JSON.stringify({
+    replyToken: replyToken,
+    messages: [
+      {
+        type: "text",
+        text: result
+      }
+    ]
+  })
+});
 
-    const text = await lineRes.text();
-    console.log("LINE返信結果:", lineRes.status, text);
-
+// 🔥 これ追加（超重要）
+const resText = await lineRes.text();
+console.log("LINE返信結果:", lineRes.status, resText);
     res.sendStatus(200);
 
   } catch (e) {
