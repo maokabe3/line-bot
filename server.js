@@ -11,7 +11,7 @@ process.on("unhandledRejection", console.error);
 async function generateUranai(num2, seiza) {
   const API_KEY = process.env.GEMINI_API_KEY;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
   const prompt = `あなたは競馬×相性占いの専門家です。
 携帯末尾: ${num2}, 星座: ${seiza}
