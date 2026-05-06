@@ -13,10 +13,11 @@ async function generateUranai(num2, seiza) {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `あなたは競馬×相性占いの専門家です。
-携帯末尾: ${num2}, 星座: ${seiza} の占いを作成してください。`;
+  const prompt = `携帯末尾: ${num2}, 星座: ${seiza} の競馬占いを作成`;
 
   try {
+    console.log("Gemini開始");
+
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -27,19 +28,16 @@ async function generateUranai(num2, seiza) {
 
     const data = await response.json();
 
+    console.log("Gemini結果取得");
+
     return data?.candidates?.[0]?.content?.parts?.[0]?.text
       || "占い生成失敗";
 
   } catch (e) {
-    console.error(e);
+    console.error("Geminiエラー:", e);
     return "通信エラー";
   }
 }
-
-// ==== 確認 ====
-app.get("/", (req, res) => {
-  res.send("OK");
-});
 
 // ==== Webhook ====
 app.post("/webhook", async (req, res) => {
@@ -53,35 +51,52 @@ app.post("/webhook", async (req, res) => {
 
     console.log("受信:", userText);
 
-    // 例：89ヤギ
-    const num = userText.slice(0, 2);
-    const seiza = userText.slice(2);
+    // すぐ返す（重要）
+    await fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({
+        replyToken: replyToken,
+        messages: [
+          {
+            type: "text",
+            text: "占い中...🔮"
+          }
+        ]
+      })
+    });
 
-    const result = await generateUranai(num, seiza);
+    // 非同期で占い（後処理）
+    (async () => {
+      const num = userText.slice(0, 2);
+      const seiza = userText.slice(2);
 
-    console.log("占い結果:", result);
+      const result = await generateUranai(num, seiza);
 
-    // 🔥 LINE返信
-const lineRes = await fetch("https://api.line.me/v2/bot/message/reply", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
-  },
-  body: JSON.stringify({
-    replyToken: replyToken,
-    messages: [
-      {
-        type: "text",
-        text: result
-      }
-    ]
-  })
-});
+      console.log("占い結果:", result);
 
-// 🔥 これ追加（超重要）
-const resText = await lineRes.text();
-console.log("LINE返信結果:", lineRes.status, resText);
+      // pushで送る（これがポイント）
+      await fetch("https://api.line.me/v2/bot/message/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+        },
+        body: JSON.stringify({
+          to: event.source.userId,
+          messages: [
+            {
+              type: "text",
+              text: result
+            }
+          ]
+        })
+      });
+    })();
+
     res.sendStatus(200);
 
   } catch (e) {
