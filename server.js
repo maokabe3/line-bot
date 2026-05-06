@@ -11,9 +11,17 @@ process.on("unhandledRejection", console.error);
 async function generateUranai(num2, seiza) {
   const API_KEY = process.env.GEMINI_API_KEY;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `携帯末尾: ${num2}, 星座: ${seiza} の競馬占いを作成`;
+  const prompt = `あなたは競馬×相性占いの専門家です。
+携帯末尾: ${num2}, 星座: ${seiza}
+以下の形式で出力してください：
+
+⭐[馬名] 🐎
+🍀 ラッキーアイテム：[アイテム]
+「[四字熟語]」
+[コメント]
+🔮 相性スコア [0-100]点`;
 
   try {
     console.log("Gemini開始");
@@ -28,14 +36,30 @@ async function generateUranai(num2, seiza) {
 
     const data = await response.json();
 
+    console.log("Gemini raw:", JSON.stringify(data, null, 2));
+
+    // ❌ エラー返ってきた場合
+    if (data.error) {
+      console.error("Gemini APIエラー:", data.error);
+      return `⚠️APIエラー: ${data.error.message}`;
+    }
+
+    // ✅ 安定取得
+    const text = data?.candidates?.[0]?.content?.parts
+      ?.map(p => p.text)
+      .join("");
+
+    if (!text) {
+      return "⚠️ 占い生成失敗（空レス）";
+    }
+
     console.log("Gemini結果取得");
 
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text
-      || "占い生成失敗";
+    return text;
 
   } catch (e) {
     console.error("Geminiエラー:", e);
-    return "通信エラー";
+    return "⚠️ 通信エラー";
   }
 }
 
@@ -51,7 +75,7 @@ app.post("/webhook", async (req, res) => {
 
     console.log("受信:", userText);
 
-    // すぐ返す（重要）
+    // ① 即返信
     await fetch("https://api.line.me/v2/bot/message/reply", {
       method: "POST",
       headers: {
@@ -60,16 +84,11 @@ app.post("/webhook", async (req, res) => {
       },
       body: JSON.stringify({
         replyToken: replyToken,
-        messages: [
-          {
-            type: "text",
-            text: "占い中...🔮"
-          }
-        ]
+        messages: [{ type: "text", text: "占い中...🔮" }]
       })
     });
 
-    // 非同期で占い（後処理）
+    // ② 非同期処理
     (async () => {
       const num = userText.slice(0, 2);
       const seiza = userText.slice(2);
@@ -78,8 +97,8 @@ app.post("/webhook", async (req, res) => {
 
       console.log("占い結果:", result);
 
-      // pushで送る（これがポイント）
-      await fetch("https://api.line.me/v2/bot/message/push", {
+      // ③ push送信
+      const pushRes = await fetch("https://api.line.me/v2/bot/message/push", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -87,14 +106,13 @@ app.post("/webhook", async (req, res) => {
         },
         body: JSON.stringify({
           to: event.source.userId,
-          messages: [
-            {
-              type: "text",
-              text: result
-            }
-          ]
+          messages: [{ type: "text", text: result }]
         })
       });
+
+      const pushText = await pushRes.text();
+      console.log("Push結果:", pushRes.status, pushText);
+
     })();
 
     res.sendStatus(200);
